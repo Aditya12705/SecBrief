@@ -1,8 +1,21 @@
+---
+title: SecBrief
+emoji: 🛡️
+colorFrom: amber
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # SecBrief
 
 **Explain the risk. Enforce the fix.**
 
 Security copilot for the **ArmorIQ Hackathon (Track 2)**: turn CVE/SARIF noise and vulnerable code into plain-English **security briefings** with **OWASP / CWE / SOC 2 / INR** mapping, then **cryptographically verified** remediation plans via ArmorIQ.
+
+**Live demo:** use this Space URL. Set `ARMORIQ_API_KEY` and `MISTRAL_API_KEY` in **Settings → Variables**.
 
 ---
 
@@ -40,7 +53,7 @@ Input (SARIF / alert / repo / code)  →  Brief (Mistral + compliance)  →  Pla
 
 ---
 
-## Quick start
+## Quick start (local)
 
 ### Prerequisites
 
@@ -49,7 +62,7 @@ Input (SARIF / alert / repo / code)  →  Brief (Mistral + compliance)  →  Pla
 - [ArmorIQ API key](https://platform.armoriq.ai)
 - [Mistral API key](https://console.mistral.ai)
 
-### 1. Environment
+### Environment
 
 Copy `.env.example` → `.env` at repo root:
 
@@ -58,44 +71,31 @@ ARMORIQ_API_KEY=ak_live_...
 MISTRAL_API_KEY=...
 MISTRAL_MODEL=mistral-small-latest
 NEXT_PUBLIC_API_URL=http://localhost:8000
-# Optional: GITHUB_TOKEN=ghp_...  (higher GitHub API limits)
-# Optional: SECBRIEF_STRICT_ARMORIQ=true  (fail closed if ArmorIQ errors)
 ```
 
-### 2. Backend
+### Run locally
 
 ```powershell
 cd backend
-python -m venv .venv
 .\.venv\Scripts\activate
-pip install -r requirements.txt
 python -m uvicorn main:app --reload --port 8000
-```
 
-If port 8000 is busy, use `--port 8001` and set `NEXT_PUBLIC_API_URL` accordingly.
-
-### 3. Frontend
-
-```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). If styles look broken, stop the dev server, delete `frontend/.next`, and run `npm run dev` again.
+Or Docker (same as HF): `docker build -t secbrief .` then `docker run -p 7860:7860 --env-file .env secbrief`
 
 ---
 
-## Demo script (~2 min) — offline round
+## Demo script (~2 min)
 
-| Step | Action | Say this |
-|------|--------|----------|
-| 1 | **Code** tab → Load SQLi sample → **Audit code** | “We map to OWASP and CWE — not just chat.” |
-| 2 | Point at compliance chips (OWASP, CWE, SOC2, ₹) | “Built for teams that need audit evidence.” |
-| 3 | Enable **Attack-the-agent** → **Generate verified fix plan** | “Plan is signed first; then we inject an undeclared destructive step.” |
-| 4 | Show **BLOCK** on `delete_all` | “Cryptography blocked it — not a better prompt.” |
-| 5 | Intent receipt + **Export Monday-morning brief** | “Compliance artifact for SOC2-ready teams.” |
-| 6 | *(Optional)* Demo Repos → Express.js deep scan | “Same pipeline for SARIF and real repos.” |
+| Step | Action |
+|------|--------|
+| 1 | **Code** tab → SQLi sample → **Audit code** |
+| 2 | **Attack-the-agent** → **Generate verified fix plan** |
+| 3 | Show **BLOCK** on `delete_all` + intent receipt |
 
 Full talking points: [PITCH.md](./PITCH.md)
 
@@ -106,36 +106,20 @@ Full talking points: [PITCH.md](./PITCH.md)
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Service status |
-| GET | `/api/why-secbrief` | Comparison JSON (for slides / charts) |
-| GET | `/api/demo-repos` | Curated GitHub repos |
-| GET | `/api/sample-alert` | Sample npm audit text |
-| POST | `/api/parse-upload` | SARIF or npm audit JSON file |
-| POST | `/api/github/scan` | Deep repo scan (`deep_scan: true`) |
-| POST | `/api/explain` | Plain-English alert explanation |
-| POST | `/api/audit-code` | Code snippet vulnerability audit |
+| GET | `/api/why-secbrief` | Comparison JSON |
+| POST | `/api/github/scan` | Deep repo scan |
+| POST | `/api/audit-code` | Code snippet audit |
 | POST | `/api/plan-fix` | Verified plan + intent receipt |
 | POST | `/api/export-brief` | Markdown incident brief |
-| GET | `/api/sessions/{email}` | Session history |
-
-Legacy comparison aliases: `/api/why-intentseal`, `/api/why-patchproof`, `/api/why-vulnexplain`, `/api/why-luma`
 
 ---
 
 ## Project structure
 
 ```
-backend/
-  main.py              # FastAPI routes
-  armoriq_service.py   # ArmorIQ session enforce + intent receipt
-  llm_service.py       # Mistral + compliance fields
-  github_service.py    # GitHub manifest scan
-  scan_enricher.py     # Deep scan (workflows, heuristics)
-  alert_parser.py      # SARIF / npm audit JSON
-  db.py                # SQLite sessions
-  armoriq.yaml         # Agent + policy config
-frontend/
-  src/app/page.tsx     # Main UI
+backend/     # FastAPI + ArmorIQ + Mistral
+frontend/    # Next.js UI (static export in Docker)
+Dockerfile   # HF Space build
 ```
 
----
-
+Deploy guide: [HF_DEPLOY.md](./HF_DEPLOY.md)
