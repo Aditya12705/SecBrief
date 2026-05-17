@@ -1,0 +1,16 @@
+.git
+.env
+.env.*
+!.env.example
+**/.venv
+**/node_modules
+**/.next
+**/__pycache__
+**/*.pyc
+backend/data
+*.md
+!README.md
+agent-transcripts
+terminals
+mcps
+assets

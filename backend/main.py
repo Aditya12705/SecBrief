@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field
 
 from alert_parser import extract_cve_ids, parse_upload
@@ -390,3 +391,10 @@ def why_secbrief() -> dict:
 @app.get("/api/why-luma")
 def why_legacy() -> dict:
     return why_secbrief()
+
+
+# --- Static frontend (Next.js export) for Hugging Face / single-container deploy ---
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+if STATIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="frontend")

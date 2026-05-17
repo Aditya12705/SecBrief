@@ -1,6 +1,7 @@
 import type { Decision, DemoRepo, IntentReceipt } from "./types";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+/** Empty = same origin (Hugging Face all-in-one deploy). */
+const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 async function parseResponse<T>(r: Response): Promise<T> {
   const text = await r.text();
