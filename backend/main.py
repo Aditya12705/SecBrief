@@ -393,6 +393,10 @@ def why_legacy() -> dict:
     return why_secbrief()
 
 
+# --- Pulse dashboard (read-only) ---
+from dashboard_router import router as dashboard_router
+app.include_router(dashboard_router)
+
 # --- Static frontend (Next.js export) for Hugging Face / single-container deploy ---
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
