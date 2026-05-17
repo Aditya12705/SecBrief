@@ -4,9 +4,6 @@
 
 Security copilot for the **ArmorIQ Hackathon (Track 2)**: turn CVE/SARIF noise and vulnerable code into plain-English **security briefings** with **OWASP / CWE / SOC 2 / INR** mapping, then **cryptographically verified** remediation plans via ArmorIQ.
 
-> **Presenter materials:** [PITCH.md](./PITCH.md) · [PPT_CONTENT.md](./PPT_CONTENT.md) · [SUBMISSION.md](./SUBMISSION.md)  
-> The live app is product-only; comparison tables and judge talking points live in those files.
-
 ---
 
 ## One-liner
@@ -142,34 +139,3 @@ frontend/
 
 ---
 
-## Deploy (optional)
-
-| Service | Root | Notes |
-|---------|------|-------|
-| **Vercel** | `frontend/` | Set `NEXT_PUBLIC_API_URL` to your backend URL |
-| **Railway / Render** | `backend/` | `uvicorn main:app --host 0.0.0.0 --port $PORT` · set `FRONTEND_ORIGIN` for CORS |
-
----
-
-## Hackathon checklist
-
-- [ ] `ARMORIQ_API_KEY` and `MISTRAL_API_KEY` in `.env`
-- [ ] Backend on :8000, frontend on :3000
-- [ ] Live demo: code audit → OWASP chips → attack-the-agent BLOCK
-- [ ] Screenshot: briefing + blocked step + ArmorIQ audit
-- [ ] 2-min demo video recorded
-- [ ] Slides from [PPT_CONTENT.md](./PPT_CONTENT.md)
-- [ ] Team details on [SUBMISSION.md](./SUBMISSION.md)
-
----
-
-## Repos
-
-- **SecBrief** — this hackathon project (publish as `secbrief` on GitHub)
-- **VulnExplain** — your older repo (keep unchanged)
-
----
-
-## License
-
-Hackathon submission — ArmorIQ Track 2.
