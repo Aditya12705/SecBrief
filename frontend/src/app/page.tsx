@@ -342,6 +342,27 @@ export default function Home() {
           {sessionId && (
             <span className="text-slate-700 font-mono"> · {sessionId.slice(0, 8)}</span>
           )}
+          {/* ADD: View Team Dashboard link — appears after session is active */}
+          {sessionId && (
+            <div style={{ marginTop: "0.6rem" }}>
+              <a
+                href="/pulse"
+                style={{
+                  display: "inline-block",
+                  fontSize: "0.72rem",
+                  color: "#34d399",
+                  textDecoration: "none",
+                  padding: "0.3rem 0.8rem",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(52,211,153,0.3)",
+                  background: "rgba(52,211,153,0.07)",
+                  transition: "background 0.2s",
+                }}
+              >
+                View team dashboard →
+              </a>
+            </div>
+          )}
         </footer>
       </div>
     </main>
