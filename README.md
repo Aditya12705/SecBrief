@@ -4,9 +4,6 @@
 
 Security copilot for the **ArmorIQ Hackathon (Track 2)**: turn CVE/SARIF noise and vulnerable code into plain-English **security briefings** with **OWASP / CWE / SOC 2 / INR** mapping, then **cryptographically verified** remediation plans via ArmorIQ.
 
-> **Presenter materials:** [PITCH.md](./PITCH.md) · [PPT_CONTENT.md](./PPT_CONTENT.md) · [SUBMISSION.md](./SUBMISSION.md)  
-> The live app is product-only; comparison tables and judge talking points live in those files.
-
 ---
 
 ## One-liner
