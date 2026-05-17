@@ -1,7 +1,7 @@
 ---
 title: SecBrief
 emoji: 🛡️
-colorFrom: amber
+colorFrom: yellow
 colorTo: green
 sdk: docker
 app_port: 7860
