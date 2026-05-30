@@ -1,15 +1,8 @@
 "use client";
 
 import { useRef } from "react";
+import { TabBar } from "@/components/TabBar";
 import type { DemoRepo, InputMode } from "@/lib/types";
-
-const TABS: { id: InputMode; label: string; icon: string }[] = [
-  { id: "github", label: "Repo", icon: "⌘" },
-  { id: "code", label: "Code", icon: "{}" },
-  { id: "paste", label: "Alert", icon: "📋" },
-  { id: "demo", label: "Demo", icon: "★" },
-  { id: "scanner", label: "Scanner", icon: "🔍" },
-];
 
 const SAMPLE_VULN_CODE = `// SQL injection example
 const userId = req.query.id;
@@ -123,38 +116,31 @@ export function InputPanel({
   };
 
   return (
-    <div className="flex flex-col gap-5 h-full">
-      <div className="flex rounded-2xl bg-slate-950 p-1.5 border border-slate-800 shadow-inner">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onModeChange(tab.id)}
-            className={`flex-1 py-3 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
-              mode === tab.id
-                ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/40 scale-[1.02]"
-                : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
-            }`}
-          >
-            <span className="block sm:inline mb-1 sm:mb-0 sm:mr-1.5 text-base sm:text-sm">{tab.icon}</span>
-            <span className="block sm:inline">{tab.label}</span>
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-col gap-4 h-full">
+      <TabBar mode={mode} onModeChange={onModeChange} />
 
-      <label className="text-xs text-slate-500">
-        Email <span className="text-slate-600">(ArmorIQ audit identity)</span>
-      </label>
-      <input
-        className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-        value={email}
-        onChange={(e) => onEmailChange(e.target.value)}
-        placeholder="you@company.com"
-      />
+      <div className="rounded-xl border border-slate-800 bg-slate-900/30 px-3 py-3 space-y-2">
+        <div>
+          <label htmlFor="audit-email" className="text-xs font-medium text-slate-300">
+            Audit identity
+          </label>
+          <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+            Tied to ArmorIQ sessions and compliance logs
+          </p>
+        </div>
+        <input
+          id="audit-email"
+          type="email"
+          className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40"
+          value={email}
+          onChange={(e) => onEmailChange(e.target.value)}
+          placeholder="you@company.com"
+        />
+      </div>
 
       {mode === "github" && (
         <>
-          <label className="text-xs text-slate-500">GitHub repository URL</label>
+          <label className="text-xs font-medium text-slate-300">GitHub repository URL</label>
           <input
             className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             value={repoUrl}
@@ -177,7 +163,7 @@ export function InputPanel({
 
       {mode === "code" && (
         <>
-          <label className="text-xs text-slate-500">Code snippet to audit</label>
+          <label className="text-xs font-medium text-slate-300">Code snippet to audit</label>
           <textarea
             className="flex-1 min-h-[180px] w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             value={codeText}
@@ -206,7 +192,7 @@ export function InputPanel({
 
       {mode === "paste" && (
         <>
-          <label className="text-xs text-slate-500">
+          <label className="text-xs font-medium text-slate-300">
             Vulnerability report or upload SARIF / npm audit JSON
           </label>
           <input
@@ -277,29 +263,32 @@ export function InputPanel({
       )}
 
       {mode === "scanner" && (
-        <div className="space-y-3 flex-1 overflow-y-auto">
-          <div className="flex rounded-xl bg-slate-900/80 p-1 border border-slate-800">
+        <div className="space-y-3 flex-1 overflow-y-auto min-h-0">
+          <p className="text-[11px] text-slate-500 leading-snug">
+            Scan packages or container images — findings feed into explain &amp; fix plan below.
+          </p>
+          <div className="flex rounded-lg border border-slate-800 bg-slate-950/80 p-1 gap-0.5">
             <button
               type="button"
               onClick={() => setScanMode("package")}
-              className={`flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-medium transition ${
+              className={`flex-1 py-2 px-2 rounded-md text-xs font-semibold transition ${
                 scanMode === "package"
-                  ? "bg-emerald-600/90 text-white shadow"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-slate-800 text-emerald-400 ring-1 ring-emerald-500/25"
+                  : "text-slate-500 hover:text-slate-300 hover:bg-slate-900/80"
               }`}
             >
-              📦 Package Scan
+              Package
             </button>
             <button
               type="button"
               onClick={() => setScanMode("container")}
-              className={`flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-medium transition ${
+              className={`flex-1 py-2 px-2 rounded-md text-xs font-semibold transition ${
                 scanMode === "container"
-                  ? "bg-emerald-600/90 text-white shadow"
-                  : "text-slate-500 hover:text-slate-300"
+                  ? "bg-slate-800 text-emerald-400 ring-1 ring-emerald-500/25"
+                  : "text-slate-500 hover:text-slate-300 hover:bg-slate-900/80"
               }`}
             >
-              🐳 Container Scan
+              Container
             </button>
           </div>
 

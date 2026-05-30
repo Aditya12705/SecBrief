@@ -4,10 +4,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from __future__ import annotations
-
-import os
-from pathlib import Path
 from dotenv import load_dotenv
 
 # Load env before other imports
@@ -106,19 +102,19 @@ class GitHubScanRequest(BaseModel):
 
 class OsvScanRequest(BaseModel):
     ecosystem: str  # "npm", "PyPI", "Go", "Maven", "RubyGems", "crates.io"
-    packages: list  # [{"name": str, "version": str}]
+    packages: list[dict[str, Any]]  # [{"name": str, "version": str}]
     user_email: Optional[str] = None
 
 
 class PackageScanRequest(BaseModel):
     ecosystem: str
-    packages: list
+    packages: list[dict[str, Any]]
     user_email: Optional[str] = None
 
 
 class ContainerScanRequest(BaseModel):
     image: str  # e.g. "nginx:1.21"
-    sbom_packages: Optional[list] = None  # [{"name": str, "version": str, "ecosystem": str}]
+    sbom_packages: Optional[list[dict[str, Any]]] = None  # [{"name": str, "version": str, "ecosystem": str}]
     user_email: Optional[str] = None
 
 
@@ -143,7 +139,7 @@ class HealthResponse(BaseModel):
     armoriq_configured: bool
     armoriq_config_file: bool
     github_token: bool
-    llm: dict
+    llm: dict[str, Any]
     strict_armoriq: bool
 
 
