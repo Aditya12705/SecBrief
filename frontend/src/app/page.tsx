@@ -77,6 +77,14 @@ export default function Home() {
   const [lastReceipt, setLastReceipt] = useState<IntentReceipt | null>(null);
   const [history, setHistory] = useState<{ id: string; title: string; date: string; status: string }[]>([]);
   const [showApp, setShowApp] = useState(false);
+  const [toast, setToast] = useState<{ title: string; message: string; type: "error" | "success" } | null>(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   useEffect(() => {
     fetchDemoRepos().then((d) => setDemoRepos(d.repos)).catch(() => {});
@@ -247,6 +255,7 @@ export default function Home() {
       localStorage.setItem("secbrief_vault", JSON.stringify(updatedHistory));
 
       const steps = (j.plan?.steps || [])
+        .filter((s: any) => s.action !== "delete_all")
         .map((s, i) => `${i + 1}. ${s.action} — ${s.description || ""}`)
         .join("\n");
       let extra = "";
@@ -254,6 +263,16 @@ export default function Home() {
         extra =
           "\n\n**Delegation:** " + j.delegation_demo.map((d) => d.message).join(" ");
       }
+
+      const hasBlock = j.decisions?.some((d: any) => d.status === "block");
+      if (hasBlock && (j as any).attack_mode) {
+        setToast({
+          title: "Security Intervention",
+          message: "ArmorIQ cryptographically blocked a malicious undeclared tool.",
+          type: "error",
+        });
+      }
+
       addMessage({
         role: "assistant",
         text: `## Remediation plan\n**Goal:** ${j.plan?.goal}\n\n${steps}\n\n**${j.summary}**${extra}`,
@@ -305,6 +324,21 @@ export default function Home() {
       ) : (
         <>
           <Header />
+
+          {/* Toast Notification */}
+          {toast && (
+            <div className="fixed top-24 right-4 z-[100] animate-in slide-in-from-right-4 duration-300">
+              <div className={`p-4 rounded-2xl shadow-2xl border flex flex-col gap-1 min-w-[300px] backdrop-blur-xl ${
+                toast.type === "error" ? "bg-red-950/80 border-red-500/50 text-red-200" : "bg-emerald-950/80 border-emerald-500/50 text-emerald-200"
+              }`}>
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest">
+                  <span className={`w-2 h-2 rounded-full ${toast.type === "error" ? "bg-red-500 animate-pulse" : "bg-emerald-500"}`} />
+                  {toast.title}
+                </div>
+                <p className="text-sm font-medium leading-snug opacity-90">{toast.message}</p>
+              </div>
+            </div>
+          )}
 
           <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 flex flex-col gap-6 animate-in fade-in duration-700">
             <section className="text-center sm:text-left flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
