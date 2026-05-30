@@ -179,7 +179,6 @@ def _ensure_session(email: str, session_id: str | None, input_mode: str, summary
     return create_session(email, input_mode, summary)
 
 
-@app.get("/health", response_model=HealthResponse)
 def _frontend_build_sha() -> str:
     sha_path = Path(__file__).resolve().parent.parent / "static" / ".build-sha"
     try:
@@ -188,6 +187,7 @@ def _frontend_build_sha() -> str:
         return "unknown"
 
 
+@app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     key = os.getenv("ARMORIQ_API_KEY", "")
     config_path = Path(__file__).parent / "armoriq.yaml"
