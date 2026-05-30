@@ -167,10 +167,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: SecBrief Scan
-        uses: your-org/secbrief-action@v1
+        uses: AditthyaSS/secbrief-action@v1
         with:
           api-key: ${{ secrets.SECBRIEF_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          secbrief-api-url: https://aditya12705-secbrief.hf.space
 """
 
 
