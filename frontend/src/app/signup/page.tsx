@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SecBriefLogo } from "@/components/SecBriefLogo";
 import { authSignup } from "@/lib/api";
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -56,14 +57,7 @@ export default function Signup() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/" className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-emerald-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-emerald-500/20">
-                  SB
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold tracking-tight">
-                    Sec<span className="text-emerald-400">Brief</span>
-                  </h1>
-                </div>
+                <SecBriefLogo size="md" showText />
               </Link>
             </div>
           </div>
@@ -133,14 +127,7 @@ export default function Signup() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-emerald-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-emerald-500/20">
-                SB
-              </div>
-              <div>
-                <h1 className="text-xl font-bold tracking-tight">
-                  Sec<span className="text-emerald-400">Brief</span>
-                </h1>
-              </div>
+              <SecBriefLogo size="md" showText />
             </Link>
           </div>
         </div>

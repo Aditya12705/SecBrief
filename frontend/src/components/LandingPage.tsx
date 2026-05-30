@@ -1,4 +1,5 @@
 import React from "react";
+import { SecBriefLogo } from "@/components/SecBriefLogo";
 
 export function LandingPage({ onStart }: { onStart: () => void }) {
   return (
@@ -12,7 +13,7 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
       <div className="relative z-10 max-w-4xl w-full flex flex-col items-center">
         {/* Logo/Badge */}
         <div className="mb-8 flex items-center gap-3 px-4 py-2 rounded-full bg-slate-900/80 border border-slate-800 backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-1000">
-          <div className="w-6 h-6 rounded bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-[10px] font-black text-white">SB</div>
+          <SecBriefLogo size="sm" />
           <span className="text-xs font-bold text-slate-300 tracking-widest uppercase">SecBrief — AI Safety Agent</span>
         </div>
 
