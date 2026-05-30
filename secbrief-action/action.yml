@@ -1,0 +1,27 @@
+name: SecBrief Security Scan
+description: Automatically scans pull requests for vulnerabilities with plain-English briefings and compliance mapping
+author: SecBrief
+branding:
+  icon: shield
+  color: green
+
+inputs:
+  api-key:
+    description: Your SecBrief API key from secbrief.dev/signup
+    required: true
+  github-token:
+    description: GitHub token for posting PR comments
+    required: true
+    default: ${{ github.token }}
+  fail-on-severity:
+    description: Minimum severity to fail the check (critical, high, medium, low)
+    required: false
+    default: critical
+  secbrief-api-url:
+    description: SecBrief API base URL. Override for self-hosted.
+    required: false
+    default: https://api.secbrief.dev
+
+runs:
+  using: node20
+  main: dist/index.js
