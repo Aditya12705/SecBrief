@@ -26,9 +26,8 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend/ ./backend/
 COPY --from=frontend-build /app/frontend/out ./static
 
-# Build marker for debugging deployed version (visible in /health)
-ARG GIT_SHA=unknown
-RUN echo "${GIT_SHA}" > /app/static/.build-sha
+# Build marker — check /health → frontend_build_sha after deploy
+RUN date -u +"%Y-%m-%dT%H:%MZ" > /app/static/.build-sha
 
 WORKDIR /app/backend
 ENV PYTHONUNBUFFERED=1
