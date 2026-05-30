@@ -1,10 +1,7 @@
 import type { Decision, DemoRepo, IntentReceipt } from "./types";
 
-/** Empty = same origin (Hugging Face all-in-one deploy). */
-export const API_BASE = (((globalThis as any).process?.env?.NEXT_PUBLIC_API_URL ?? "http://localhost:8000") as string).replace(
-  /\/$/,
-  ""
-);
+/** Empty string = same origin (HF Space). Local dev: set NEXT_PUBLIC_API_URL in frontend/.env.local */
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 async function parseResponse<T>(r: Response): Promise<T> {
   const text = await r.text();

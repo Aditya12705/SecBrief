@@ -44,8 +44,7 @@ interface DashboardData {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 // Design tokens — mirrors globals.css
 const C = {

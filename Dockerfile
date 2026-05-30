@@ -13,8 +13,9 @@ RUN npm ci
 COPY frontend/ ./
 # Never ship stale export from git; always rebuild from source
 RUN rm -rf .next out
+# Same-origin API on HF (uvicorn serves /api/* + static). Do not use localhost in the image.
 ENV NEXT_PUBLIC_API_URL=
-RUN npm run build
+RUN rm -f .env.local .env.production.local 2>/dev/null; npm run build
 
 # --- Python API + static files ---
 FROM python:3.12-slim
