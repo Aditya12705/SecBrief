@@ -153,3 +153,18 @@ export async function exportBrief(body: {
   }
   return text;
 }
+
+export function authSignup(email: string) {
+  return post<{
+    email: string;
+    api_key: string;
+    plan: string;
+    install_snippet: string;
+  }>("/api/auth/signup", { email });
+}
+
+export function authMe(apiKey: string) {
+  return fetch(`${API}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  }).then(parseResponse<{ email: string; plan: string; created_at: string }>);
+}

@@ -1,0 +1,20 @@
+{
+  "name": "secbrief-action",
+  "version": "1.0.0",
+  "description": "GitHub Action for SecBrief security scans",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "ncc build src/index.js -o dist"
+  },
+  "keywords": ["security", "github-action"],
+  "author": "SecBrief",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/github": "^6.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.1"
+  }
+}

@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,11 +16,13 @@ from pydantic import BaseModel, EmailStr, Field
 
 from alert_parser import extract_cve_ids, parse_upload
 from armoriq_service import build_remediation_plan, verify_plan
-from db import create_session, get_session, init_db, list_sessions, log_event
+from db import create_session, get_session, init_db, list_sessions, log_event, get_api_key_by_email
+from auth import generate_api_key, get_current_user
 from export_service import build_incident_brief
 from github_service import list_demo_repos, scan_repository
 from llm_service import analyze_repo, audit_code, build_fix_plan, explain_alert, llm_status, model_id
 from scan_enricher import deep_scan_repository, merge_deep_into_scan
+from github_scan_service import run_github_scan
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 init_db()
@@ -105,6 +107,35 @@ class HealthResponse(BaseModel):
     strict_armoriq: bool
 
 
+class SignupRequest(BaseModel):
+    email: EmailStr
+
+
+class SignupResponse(BaseModel):
+    email: str
+    api_key: str
+    plan: str
+    install_snippet: str
+
+
+class MeResponse(BaseModel):
+    email: str
+    plan: str
+    created_at: str
+
+
+class GitHubScanFile(BaseModel):
+    filename: str
+    content: str
+
+
+class GitHubScanPayload(BaseModel):
+    repo: str
+    pr_number: int
+    changed_files: list[GitHubScanFile]
+    ecosystem_files: list[GitHubScanFile] | None = None
+
+
 def _ensure_session(email: str, session_id: str | None, input_mode: str, summary: str) -> str:
     if session_id:
         return session_id
@@ -124,6 +155,66 @@ def health() -> HealthResponse:
         llm=llm_status(),
         strict_armoriq=os.getenv("SECBRIEF_STRICT_ARMORIQ", "").lower() in ("1", "true"),
     )
+
+
+INSTALL_SNIPPET = """name: SecBrief Security Scan
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  secbrief:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SecBrief Scan
+        uses: your-org/secbrief-action@v1
+        with:
+          api-key: ${{ secrets.SECBRIEF_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+"""
+
+
+@app.post("/api/auth/signup", response_model=SignupResponse)
+def api_auth_signup(body: SignupRequest) -> SignupResponse:
+    existing = get_api_key_by_email(body.email)
+    if existing:
+        return SignupResponse(
+            email=existing["email"],
+            api_key=existing["api_key"],
+            plan=existing["plan"],
+            install_snippet=INSTALL_SNIPPET,
+        )
+    api_key = generate_api_key(body.email)
+    return SignupResponse(
+        email=body.email,
+        api_key=api_key,
+        plan="free",
+        install_snippet=INSTALL_SNIPPET,
+    )
+
+
+@app.get("/api/auth/me", response_model=MeResponse)
+def api_auth_me(email: str = Depends(get_current_user)) -> MeResponse:
+    key_data = get_api_key_by_email(email)
+    if not key_data:
+        raise HTTPException(status_code=404, detail="User not found")
+    return MeResponse(
+        email=key_data["email"],
+        plan=key_data["plan"],
+        created_at=key_data["created_at"],
+    )
+
+
+@app.post("/api/github-scan")
+def api_github_scan(
+    payload: GitHubScanPayload,
+    email: str = Depends(get_current_user),
+) -> dict[str, Any]:
+    result = run_github_scan(payload.model_dump())
+    # Log to sessions
+    sid = create_session(email, "github_scan", f"Scan {payload.repo} PR #{payload.pr_number}")
+    log_event(sid, "github_scan", {"repo": payload.repo, "pr_number": payload.pr_number, "result": result})
+    return result
 
 
 @app.get("/api/demo-repos")
