@@ -16,6 +16,7 @@ export type IntentReceipt = {
   expires_in_seconds?: number;
   step_proofs_count?: number;
   armoriq_live?: boolean;
+  policy_bound?: boolean;
 };
 
 export type Analysis = {

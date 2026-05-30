@@ -73,21 +73,21 @@ export function InputPanel({
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      <div className="flex rounded-xl bg-slate-900/80 p-1 border border-slate-800">
+    <div className="flex flex-col gap-5 h-full">
+      <div className="flex rounded-2xl bg-slate-950 p-1.5 border border-slate-800 shadow-inner">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => onModeChange(tab.id)}
-            className={`flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-medium transition ${
+            className={`flex-1 py-3 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
               mode === tab.id
-                ? "bg-emerald-600/90 text-white shadow"
-                : "text-slate-500 hover:text-slate-300"
+                ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/40 scale-[1.02]"
+                : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
             }`}
           >
-            <span className="mr-1 opacity-70">{tab.icon}</span>
-            {tab.label}
+            <span className="block sm:inline mb-1 sm:mb-0 sm:mr-1.5 text-base sm:text-sm">{tab.icon}</span>
+            <span className="block sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -232,29 +232,13 @@ export function InputPanel({
         </p>
       )}
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 space-y-2">
-        <p className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">
-          Enforcement options
-        </p>
-        <label className="flex items-start gap-2 text-xs text-slate-400 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={simulateAttack}
-            onChange={(e) => onSimulateAttackChange(e.target.checked)}
-            className="mt-0.5 rounded border-slate-600"
-          />
-          <span>
-            <strong className="text-red-400">Attack-the-agent</strong> — inject{" "}
-            <code className="text-slate-500">delete_all</code> after signing (proves injection
-            block)
-          </span>
-        </label>
-        <label className="flex items-start gap-2 text-xs text-slate-400 cursor-pointer">
+      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3">
+        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
           <input
             type="checkbox"
             checked={useDelegation}
             onChange={(e) => onUseDelegationChange(e.target.checked)}
-            className="mt-0.5 rounded border-slate-600"
+            className="rounded border-slate-600"
           />
           <span>
             <strong className="text-indigo-400">Delegation demo</strong> — scoped sub-agent token
@@ -262,22 +246,49 @@ export function InputPanel({
         </label>
       </div>
 
-      <div className="mt-auto pt-2 border-t border-slate-800 space-y-2">
-        <button
-          type="button"
-          onClick={onPlanFix}
-          disabled={loading || (!alertText.trim() && !codeText.trim() && !scanSummary)}
-          className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold disabled:opacity-40 transition"
-        >
-          Generate verified fix plan
-        </button>
+      <div className="mt-auto pt-4 border-t border-slate-800 space-y-4">
+        <div className="rounded-xl bg-amber-950/20 border border-amber-800/30 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest">
+              Attack the Agent
+            </h3>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={simulateAttack}
+                onChange={(e) => onSimulateAttackChange(e.target.checked)}
+              />
+              <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+            </label>
+          </div>
+          <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
+            Append a malicious <code className="text-amber-300/80">delete_all</code> step after LLM signs the intent plan. Proves ArmorIQ blocks undeclared steps (prompt-injection defense).
+          </p>
+          <button
+            type="button"
+            onClick={onPlanFix}
+            disabled={loading || !(repoUrl || alertText || codeText)}
+            className={`w-full py-3 rounded-lg text-sm font-bold transition-all shadow-lg ${
+              simulateAttack 
+                ? "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/20" 
+                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20"
+            } disabled:opacity-40`}
+          >
+            {simulateAttack ? "Generate Plan + Attack" : "Generate Verified Fix Plan"}
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={onExportBrief}
           disabled={!canExport}
-          className="w-full py-2 rounded-lg border border-slate-600 text-xs text-slate-400 hover:text-slate-200 hover:border-slate-500 disabled:opacity-30 transition"
+          className="w-full py-2.5 rounded-lg border border-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-800 disabled:opacity-30 transition flex items-center justify-center gap-2"
         >
-          Export Monday-morning brief (Markdown)
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Export Incident Brief (.md)
         </button>
       </div>
     </div>

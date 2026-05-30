@@ -14,8 +14,8 @@ export function ChatPanel({
   loading: boolean;
 }) {
   return (
-    <div className="flex flex-col h-full min-h-[420px]">
-      <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+    <div className="flex flex-col h-full min-h-[400px] w-full max-w-full">
+      <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin scrollbar-thumb-slate-800">
         {messages.length === 0 && (
           <div className="rounded-xl border border-dashed border-slate-700 p-8 text-center">
             <p className="text-slate-400 text-sm max-w-md mx-auto">
@@ -98,9 +98,13 @@ export function ChatPanel({
           </article>
         ))}
         {loading && (
-          <div className="flex items-center gap-2 text-sm text-slate-500 animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            Working…
+          <div className="flex flex-col gap-2 p-4 glass rounded-xl mr-2 animate-pulse">
+            <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium uppercase tracking-widest">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+              SecBrief is thinking
+            </div>
+            <div className="h-2 bg-slate-800 rounded-full w-3/4" />
+            <div className="h-2 bg-slate-800 rounded-full w-1/2" />
           </div>
         )}
       </div>

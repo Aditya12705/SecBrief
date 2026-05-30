@@ -20,15 +20,19 @@ export function ComplianceBar({ analysis }: { analysis?: Analysis }) {
   if (!items.length) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 mb-2">
+    <div className="flex flex-wrap gap-2 mb-3">
       {items.map((item) => (
         <span
           key={item.label}
-          className="text-[10px] px-2 py-1 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300"
+          className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium bg-slate-900 text-slate-300 border border-slate-700/50 shadow-sm"
           title={item.value}
         >
-          <span className="text-amber-500/90 font-semibold">{item.label}</span>{" "}
-          <span className="text-slate-400">{item.value.length > 40 ? `${item.value.slice(0, 40)}…` : item.value}</span>
+          <span className="text-amber-400 mr-1.5 font-bold uppercase tracking-tighter text-[9px]">
+            {item.label}
+          </span>{" "}
+          <span className="text-slate-200 max-w-[150px] truncate">
+            {item.value}
+          </span>
         </span>
       ))}
     </div>

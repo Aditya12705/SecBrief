@@ -4,10 +4,15 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load env before other imports
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(env_path)
+
 from typing import Any
 
 import httpx
-from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
@@ -22,7 +27,6 @@ from github_service import list_demo_repos, scan_repository
 from llm_service import analyze_repo, audit_code, build_fix_plan, explain_alert, llm_status, model_id
 from scan_enricher import deep_scan_repository, merge_deep_into_scan
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 init_db()
 
 app = FastAPI(
@@ -37,6 +41,7 @@ def _cors_origins() -> list[str]:
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
+        "*"
     ]
     extra = os.getenv("FRONTEND_ORIGIN", "").strip()
     if extra and extra not in origins:

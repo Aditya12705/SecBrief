@@ -22,6 +22,12 @@ DEMO_REPOS: list[dict[str, str]] = [
         "why": "Lightweight Python web — requirements.txt analysis",
     },
     {
+        "url": "https://github.com/django/django",
+        "label": "Django",
+        "stack": "Python",
+        "why": "Enterprise Python web — extensive security features",
+    },
+    {
         "url": "https://github.com/vitejs/vite",
         "label": "Vite",
         "stack": "JavaScript",
@@ -39,6 +45,30 @@ DEMO_REPOS: list[dict[str, str]] = [
         "stack": "React",
         "why": "Full-stack React — large dependency tree",
     },
+    {
+        "url": "https://github.com/gin-gonic/gin",
+        "label": "Gin",
+        "stack": "Go",
+        "why": "High-performance Go web — go.mod analysis",
+    },
+    {
+        "url": "https://github.com/rails/rails",
+        "label": "Ruby on Rails",
+        "stack": "Ruby",
+        "why": "The OG web framework — Gemfile & secret_key_base",
+    },
+    {
+        "url": "https://github.com/spring-projects/spring-boot",
+        "label": "Spring Boot",
+        "stack": "Java",
+        "why": "Enterprise Java — pom.xml & Log4j context",
+    },
+    {
+        "url": "https://github.com/rust-lang/rust",
+        "label": "Rust",
+        "stack": "Rust",
+        "why": "Memory safe systems language — Cargo.toml scan",
+    },
 ]
 
 MANIFEST_FILES = [
@@ -53,6 +83,8 @@ MANIFEST_FILES = [
     "Cargo.toml",
     "Gemfile",
     "composer.json",
+    "pom.xml",
+    "build.gradle",
     "Dockerfile",
     ".github/dependabot.yml",
 ]
