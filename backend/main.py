@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from __future__ import annotations
+
+import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Load env before other imports
 env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(env_path)
+load_dotenv(env_path, override=True)
 
-from typing import Any
-
+from typing import Any, Optional
 import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,9 +26,18 @@ from alert_parser import extract_cve_ids, parse_upload
 from armoriq_service import build_remediation_plan, verify_plan
 from db import create_session, get_session, init_db, list_sessions, log_event, get_api_key_by_email
 from auth import generate_api_key, get_current_user
+from osv_scanner import scan_packages_osv
+from cli_scanner import (
+    analyze_packages_with_mistral,
+    analyze_container_with_mistral,
+    build_steps_packages,
+    build_steps_container,
+    make_receipt,
+)
 from export_service import build_incident_brief
 from github_service import list_demo_repos, scan_repository
 from llm_service import analyze_repo, audit_code, build_fix_plan, explain_alert, llm_status, model_id
+from llm_service import _chat_mistral
 from scan_enricher import deep_scan_repository, merge_deep_into_scan
 from github_scan_service import run_github_scan
 
@@ -90,6 +102,29 @@ class GitHubScanRequest(BaseModel):
     repo_url: str = Field(..., min_length=3, max_length=500)
     deep_scan: bool = Field(default=True)
     session_id: str | None = None
+
+
+class OsvScanRequest(BaseModel):
+    ecosystem: str  # "npm", "PyPI", "Go", "Maven", "RubyGems", "crates.io"
+    packages: list  # [{"name": str, "version": str}]
+    user_email: Optional[str] = None
+
+
+class PackageScanRequest(BaseModel):
+    ecosystem: str
+    packages: list
+    user_email: Optional[str] = None
+
+
+class ContainerScanRequest(BaseModel):
+    image: str  # e.g. "nginx:1.21"
+    sbom_packages: Optional[list] = None  # [{"name": str, "version": str, "ecosystem": str}]
+    user_email: Optional[str] = None
+
+
+class ProjectScanRequest(BaseModel):
+    path: str = "."
+    user_email: Optional[str] = None
 
 
 class ExportRequest(BaseModel):
@@ -487,6 +522,151 @@ def why_secbrief() -> dict:
 @app.get("/api/why-luma")
 def why_legacy() -> dict:
     return why_secbrief()
+
+
+# --- Mistral-based Vulnerability Scanning ---
+
+@app.post("/api/package-scan")
+async def package_scan(req: PackageScanRequest):
+    result = await analyze_packages_with_mistral(req.packages, req.ecosystem, _chat_mistral)
+    steps = build_steps_packages(result.get("findings",[]))
+    armoriq = {"status":"skipped","receipt":None,"enforcement":[]}
+    try:
+        armoriq_service: Any = __import__("armoriq_service")
+        enforcement = await armoriq_service.enforce_plan(steps)
+        receipt = armoriq_service.create_intent_receipt(steps)
+        armoriq = {"status":"enforced","receipt":receipt,"enforcement":enforcement}
+    except:
+        armoriq = {"status":"receipt_only","receipt":make_receipt(steps),"enforcement":steps}
+    try:
+        from db import save_scan_log
+        save_scan_log("package",req.ecosystem,result.get("total_scanned",0),result.get("critical_count",0),str(armoriq.get("receipt","")),req.user_email)
+    except: pass
+    return {**result,"armoriq":armoriq}
+
+@app.post("/api/container-scan")
+async def container_scan(req: ContainerScanRequest):
+    result = await analyze_container_with_mistral(req.image, req.sbom_packages, _chat_mistral)
+    steps = build_steps_container(req.image, result)
+    armoriq = {"status":"skipped","receipt":None,"enforcement":[]}
+    try:
+        armoriq_service: Any = __import__("armoriq_service")
+        enforcement = await armoriq_service.enforce_plan(steps)
+        receipt = armoriq_service.create_intent_receipt(steps)
+        armoriq = {"status":"enforced","receipt":receipt,"enforcement":enforcement}
+    except:
+        armoriq = {"status":"receipt_only","receipt":make_receipt(steps),"enforcement":steps}
+    try:
+        from db import save_scan_log
+        save_scan_log("container",req.image,result.get("total_findings",0),result.get("critical_count",0),str(armoriq.get("receipt","")),req.user_email)
+    except: pass
+    return {**result,"armoriq":armoriq}
+
+@app.get("/api/scan-history")
+async def scan_history(email: Optional[str] = None, limit: int = 20):
+    try:
+        from db import get_scan_logs
+        return {"logs": get_scan_logs(email, limit)}
+    except Exception as e:
+        return {"logs":[],"error":str(e)}
+
+
+@app.post("/api/project-scan")
+async def project_scan(req: ProjectScanRequest):
+    try:
+        from repo_scanner import build_steps_repo_scan, scan_repository_with_mistral
+
+        repo_root = Path(__file__).resolve().parent.parent
+        target = (repo_root / (req.path or ".")).resolve()
+        if repo_root not in target.parents and target != repo_root:
+            raise HTTPException(status_code=400, detail="Invalid path (must be inside repository)")
+
+        result = scan_repository_with_mistral(str(target), _chat_mistral)
+        steps = build_steps_repo_scan(result, str(target))
+
+        armoriq = {"status":"skipped","receipt":None,"enforcement":[]}
+        try:
+            armoriq_service: Any = __import__("armoriq_service")
+            enforcement = await armoriq_service.enforce_plan(steps)
+            receipt = armoriq_service.create_intent_receipt(steps)
+            armoriq = {"status":"enforced","receipt":receipt,"enforcement":enforcement}
+        except:
+            armoriq = {"status":"receipt_only","receipt":make_receipt(steps),"enforcement":steps}
+
+        try:
+            from db import save_scan_log
+            save_scan_log(
+                "project",
+                str(target),
+                result.get("total_findings", 0),
+                result.get("critical_count", 0),
+                str(armoriq.get("receipt", "")),
+                req.user_email,
+            )
+        except:
+            pass
+
+        return {**result, "armoriq": armoriq, "target": str(target)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/osv-scan")
+async def osv_scan(req: OsvScanRequest):
+    try:
+        # Normalize packages — inject ecosystem
+        packages = [
+            {"name": p.get("name", ""), "version": p.get("version", ""), "ecosystem": req.ecosystem}
+            for p in req.packages if p.get("name")
+        ]
+
+        # Run OSV scan
+        scan_result = await scan_packages_osv(packages)
+
+        # Build ArmorIQ enforcement plan — one step per vulnerable package
+        steps = []
+        for vuln in scan_result["vulnerabilities"]:
+            steps.append({
+                "action": "remediate_vulnerability",
+                "resource": f"{vuln['package']}@{vuln['version']}",
+                "metadata": {
+                    "vuln_id": vuln["vuln_id"],
+                    "severity": vuln["severity"],
+                    "ecosystem": vuln["ecosystem"],
+                    "osv_url": vuln["osv_url"],
+                }
+            })
+
+        # If no vulns, add a "no_action_required" step so ArmorIQ still logs it
+        if not steps:
+            steps = [{"action": "no_action_required", "resource": f"{req.ecosystem} scan", "metadata": {"packages_scanned": len(packages)}}]
+
+        # Call existing ArmorIQ enforcement
+        armoriq_result = {"status": "skipped", "receipt": None, "enforcement": []}
+        try:
+            armoriq_service: Any = __import__("armoriq_service")
+            enforcement = await armoriq_service.enforce_plan(steps)
+            receipt = armoriq_service.create_intent_receipt(steps)
+            armoriq_result = {"status": "enforced", "receipt": receipt, "enforcement": enforcement}
+        except Exception:
+            # Fallback
+            receipt = make_receipt(steps)
+            armoriq_result = {"status": "unavailable", "receipt": receipt, "enforcement": []}
+
+        # Log to DB
+        try:
+            from db import save_osv_scan_log
+            save_osv_scan_log("package", req.ecosystem, scan_result["total_vulns"], scan_result["critical_count"], str(armoriq_result.get("receipt", "")), req.user_email)
+        except: pass
+
+        return {
+            **scan_result,
+            "armoriq": armoriq_result,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # --- Pulse dashboard (read-only) ---

@@ -10,6 +10,7 @@ import {
   auditCode,
   explainAlert,
   exportBrief,
+  API_BASE,
   fetchDemoRepos,
   fetchSampleAlert,
   parseUpload,
@@ -78,6 +79,14 @@ export default function Home() {
   const [history, setHistory] = useState<{ id: string; title: string; date: string; status: string }[]>([]);
   const [showApp, setShowApp] = useState(false);
   const [toast, setToast] = useState<{ title: string; message: string; type: "error" | "success" } | null>(null);
+  const [scanMode, setScanMode] = useState<"package" | "container">("package");
+  const [scanEco, setScanEco] = useState("npm");
+  const [scanPkgText, setScanPkgText] = useState("");
+  const [ctrImage, setCtrImage] = useState("");
+  const [ctrSbom, setCtrSbom] = useState("");
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
+  const [scanErr, setScanErr] = useState("");
 
   useEffect(() => {
     if (toast) {
@@ -312,6 +321,77 @@ export default function Home() {
     }
   };
 
+  const handlePkgScan = async () => {
+    setScanLoading(true);
+    setScanResult(null);
+    setScanErr("");
+    const pkgs = scanPkgText
+      .split("\n")
+      .filter((l: string) => l.trim())
+      .map((l: string) => {
+        const t = l.trim();
+        if (t.startsWith("@")) {
+          const r = t.slice(1);
+          const i = r.lastIndexOf("@");
+          return i > -1
+            ? { name: "@" + r.slice(0, i), version: r.slice(i + 1) }
+            : { name: t, version: "latest" };
+        }
+        const i = t.lastIndexOf("@");
+        return i > -1 ? { name: t.slice(0, i), version: t.slice(i + 1) } : { name: t, version: "latest" };
+      })
+      .filter((p: { name: string; version: string }) => p.name);
+    try {
+      const res = await fetch(`${API_BASE}/api/package-scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ecosystem: scanEco, packages: pkgs }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Failed");
+      setScanResult(d);
+    } catch (e: any) {
+      setScanErr(e.message);
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  const handleCtrScan = async () => {
+    setScanLoading(true);
+    setScanResult(null);
+    setScanErr("");
+    let sbom: any[] = [];
+    if (ctrSbom.trim()) {
+      sbom = ctrSbom
+        .split("\n")
+        .filter((l: string) => l.trim())
+        .map((l: string) => {
+          const t = l.trim();
+          const ci = t.lastIndexOf(":");
+          const ai = t.lastIndexOf("@");
+          return ci > ai && ai > -1
+            ? { name: t.slice(0, ai), version: t.slice(ai + 1, ci), ecosystem: t.slice(ci + 1) }
+            : null;
+        })
+        .filter(Boolean) as any[];
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/container-scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: ctrImage, sbom_packages: sbom.length ? sbom : null }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Failed");
+      setScanResult(d);
+    } catch (e: any) {
+      setScanErr(e.message);
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
   const onSelectDemo = (repo: DemoRepo) => {
     setMode("github");
     handleScanRepo(repo.url);
@@ -393,6 +473,21 @@ export default function Home() {
               onUseDelegationChange={setUseDelegation}
               onExportBrief={handleExport}
               canExport={!!(lastPlan || lastDecisions?.length)}
+              scanMode={scanMode}
+              setScanMode={setScanMode}
+              scanEco={scanEco}
+              setScanEco={setScanEco}
+              scanPkgText={scanPkgText}
+              setScanPkgText={setScanPkgText}
+              ctrImage={ctrImage}
+              setCtrImage={setCtrImage}
+              ctrSbom={ctrSbom}
+              setCtrSbom={setCtrSbom}
+              scanLoading={scanLoading}
+              scanResult={scanResult}
+              scanErr={scanErr}
+              onPkgScan={handlePkgScan}
+              onCtrScan={handleCtrScan}
             />
 
             {history.length > 0 && (

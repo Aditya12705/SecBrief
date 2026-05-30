@@ -8,6 +8,7 @@ const TABS: { id: InputMode; label: string; icon: string }[] = [
   { id: "code", label: "Code", icon: "{}" },
   { id: "paste", label: "Alert", icon: "📋" },
   { id: "demo", label: "Demo", icon: "★" },
+  { id: "scanner", label: "Scanner", icon: "🔍" },
 ];
 
 const SAMPLE_VULN_CODE = `// SQL injection example
@@ -42,6 +43,21 @@ export function InputPanel({
   onUseDelegationChange,
   onExportBrief,
   canExport,
+  scanMode,
+  setScanMode,
+  scanEco,
+  setScanEco,
+  scanPkgText,
+  setScanPkgText,
+  ctrImage,
+  setCtrImage,
+  ctrSbom,
+  setCtrSbom,
+  scanLoading,
+  scanResult,
+  scanErr,
+  onPkgScan,
+  onCtrScan,
 }: {
   mode: InputMode;
   onModeChange: (m: InputMode) => void;
@@ -69,8 +85,42 @@ export function InputPanel({
   onUseDelegationChange: (v: boolean) => void;
   onExportBrief: () => void;
   canExport: boolean;
+  scanMode: "package" | "container";
+  setScanMode: (v: "package" | "container") => void;
+  scanEco: string;
+  setScanEco: (v: string) => void;
+  scanPkgText: string;
+  setScanPkgText: (v: string) => void;
+  ctrImage: string;
+  setCtrImage: (v: string) => void;
+  ctrSbom: string;
+  setCtrSbom: (v: string) => void;
+  scanLoading: boolean;
+  scanResult: any;
+  scanErr: string;
+  onPkgScan: () => void;
+  onCtrScan: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const severityBadge = (sev: string) => {
+    const s = (sev || "UNKNOWN").toUpperCase();
+    const base = "inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md border";
+    if (s === "CRITICAL") return `${base} bg-red-950/40 border-red-800/50 text-red-200`;
+    if (s === "HIGH") return `${base} bg-amber-950/30 border-amber-800/40 text-amber-200`;
+    if (s === "MEDIUM") return `${base} bg-indigo-950/30 border-indigo-800/40 text-indigo-200`;
+    if (s === "LOW") return `${base} bg-emerald-950/30 border-emerald-800/40 text-emerald-200`;
+    if (s === "NONE") return `${base} bg-slate-900/60 border-slate-700 text-slate-400`;
+    return `${base} bg-slate-900/60 border-slate-700 text-slate-400`;
+  };
+  const chip = (text: string, cls: string) => (
+    <span className={`text-[10px] px-2 py-1 rounded-md border ${cls}`}>{text}</span>
+  );
+  const armStatus = (s: string) => {
+    if (s === "enforced") return { label: "✅ ENFORCED", cls: "bg-emerald-950/30 border-emerald-800/40 text-emerald-200" };
+    if (s === "receipt_only") return { label: "📋 RECEIPT", cls: "bg-amber-950/30 border-amber-800/40 text-amber-200" };
+    if (s === "unavailable") return { label: "⚠️ UNAVAILABLE", cls: "bg-amber-950/30 border-amber-800/40 text-amber-200" };
+    return { label: "Skipped", cls: "bg-slate-900/60 border-slate-700 text-slate-400" };
+  };
 
   return (
     <div className="flex flex-col gap-5 h-full">
@@ -223,6 +273,273 @@ export function InputPanel({
               <p className="text-xs text-slate-500 mt-1">{repo.why}</p>
             </button>
           ))}
+        </div>
+      )}
+
+      {mode === "scanner" && (
+        <div className="space-y-3 flex-1 overflow-y-auto">
+          <div className="flex rounded-xl bg-slate-900/80 p-1 border border-slate-800">
+            <button
+              type="button"
+              onClick={() => setScanMode("package")}
+              className={`flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-medium transition ${
+                scanMode === "package"
+                  ? "bg-emerald-600/90 text-white shadow"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              📦 Package Scan
+            </button>
+            <button
+              type="button"
+              onClick={() => setScanMode("container")}
+              className={`flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-medium transition ${
+                scanMode === "container"
+                  ? "bg-emerald-600/90 text-white shadow"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              🐳 Container Scan
+            </button>
+          </div>
+
+          {scanMode === "package" && (
+            <>
+              <label className="text-xs text-slate-500">Ecosystem</label>
+              <select
+                className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                value={scanEco}
+                onChange={(e) => setScanEco(e.target.value)}
+              >
+                {["npm", "PyPI", "Go", "Maven", "RubyGems", "crates.io"].map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+              <label className="text-xs text-slate-500">Packages (one per line: name@version)</label>
+              <textarea
+                className="min-h-[140px] w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                rows={6}
+                placeholder={"lodash@4.17.20\nflask@2.0.1"}
+                value={scanPkgText}
+                onChange={(e) => setScanPkgText(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={onPkgScan}
+                disabled={scanLoading}
+                className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold disabled:opacity-40 transition"
+              >
+                🔍 Scan Packages
+              </button>
+            </>
+          )}
+
+          {scanMode === "container" && (
+            <>
+              <label className="text-xs text-slate-500">Docker Image</label>
+              <input
+                className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                placeholder="nginx:1.21"
+                value={ctrImage}
+                onChange={(e) => setCtrImage(e.target.value)}
+              />
+              <label className="text-xs text-slate-500">SBOM (optional, one per line: name@version:ecosystem)</label>
+              <textarea
+                className="min-h-[110px] w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                rows={4}
+                placeholder="flask@2.0.1:PyPI"
+                value={ctrSbom}
+                onChange={(e) => setCtrSbom(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={onCtrScan}
+                disabled={scanLoading}
+                className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold disabled:opacity-40 transition"
+              >
+                🐳 Scan Container
+              </button>
+            </>
+          )}
+
+          {scanLoading && (
+            <div className="flex flex-col items-center justify-center gap-2 py-6 text-sm text-slate-500 animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Scanning with Mistral AI + ArmorIQ...
+            </div>
+          )}
+
+          {!!scanErr && (
+            <div className="text-xs text-red-300 bg-red-950/40 border border-red-800/50 rounded-lg px-3 py-2">
+              {scanErr}
+            </div>
+          )}
+
+          {scanResult !== null && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {chip(`🔴 Critical: ${scanResult.critical_count ?? 0}`, "bg-red-950/40 border-red-800/50 text-red-200")}
+                {chip(`🟠 High: ${scanResult.high_count ?? 0}`, "bg-amber-950/30 border-amber-800/40 text-amber-200")}
+                {chip(`🟡 Medium: ${scanResult.medium_count ?? 0}`, "bg-indigo-950/30 border-indigo-800/40 text-indigo-200")}
+                {chip(`🟢 Low: ${scanResult.low_count ?? 0}`, "bg-emerald-950/30 border-emerald-800/40 text-emerald-200")}
+                {chip(`📦 Scanned: ${scanResult.total_scanned ?? "—"}`, "bg-slate-800/80 border-slate-700 text-slate-300")}
+              </div>
+
+              {scanMode === "container" && (
+                <div className="space-y-2">
+                  <div className="text-xs text-slate-400">
+                    Image: <span className="text-slate-200 font-mono">{scanResult.image ?? "—"}</span> | OS:{" "}
+                    <span className="text-slate-200">{scanResult.base_os_guess ?? "—"}</span> | Risk:{" "}
+                    <span className={severityBadge(scanResult.overall_risk || "UNKNOWN")}>
+                      {(scanResult.overall_risk || "UNKNOWN").toUpperCase()}
+                    </span>
+                  </div>
+                  {scanResult.uses_latest_tag && (
+                    <div className="text-xs text-amber-200 bg-amber-950/30 border border-amber-800/40 rounded-lg px-3 py-2">
+                      ⚠️ Pin image to a specific digest — 'latest' is insecure
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    {scanMode === "package" ? (
+                      <tr className="text-xs text-slate-500 border-b border-slate-800">
+                        <th className="text-left py-2 pr-2 font-medium">Package</th>
+                        <th className="text-left py-2 pr-2 font-medium">Version</th>
+                        <th className="text-left py-2 pr-2 font-medium">Severity</th>
+                        <th className="text-left py-2 pr-2 font-medium">CVE IDs</th>
+                        <th className="text-left py-2 pr-2 font-medium">Summary</th>
+                        <th className="text-left py-2 pr-2 font-medium">Fix Version</th>
+                        <th className="text-left py-2 pr-2 font-medium">OWASP</th>
+                      </tr>
+                    ) : (
+                      <tr className="text-xs text-slate-500 border-b border-slate-800">
+                        <th className="text-left py-2 pr-2 font-medium">Component</th>
+                        <th className="text-left py-2 pr-2 font-medium">Severity</th>
+                        <th className="text-left py-2 pr-2 font-medium">CVE IDs</th>
+                        <th className="text-left py-2 pr-2 font-medium">Summary</th>
+                      </tr>
+                    )}
+                  </thead>
+                  <tbody className="text-slate-300">
+                    {scanMode === "package" ? (
+                      (scanResult.findings || []).filter((f: any) => f?.severity && f.severity !== "NONE").length ? (
+                        (scanResult.findings || [])
+                          .filter((f: any) => f?.severity && f.severity !== "NONE")
+                          .map((f: any, idx: number) => (
+                            <tr key={idx} className="border-b border-slate-800/60">
+                              <td className="py-2 pr-2 font-mono text-xs text-slate-200">{f.package}</td>
+                              <td className="py-2 pr-2 font-mono text-xs text-slate-400">{f.version}</td>
+                              <td className="py-2 pr-2">
+                                <span className={severityBadge(f.severity)}>{String(f.severity).toUpperCase()}</span>
+                              </td>
+                              <td className="py-2 pr-2 text-xs text-slate-400">
+                                {(Array.isArray(f.cve_ids) ? f.cve_ids.join(", ") : "") || "—"}
+                              </td>
+                              <td className="py-2 pr-2 text-xs">{f.summary || "—"}</td>
+                              <td className="py-2 pr-2 font-mono text-xs text-slate-400">{f.recommended_version || "—"}</td>
+                              <td className="py-2 pr-2 text-xs text-slate-400">{f.owasp || "—"}</td>
+                            </tr>
+                          ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="py-3 text-sm text-emerald-300">
+                            ✅ No vulnerabilities found.
+                          </td>
+                        </tr>
+                      )
+                    ) : (
+                      ([] as any[])
+                        .concat(scanResult.image_findings || [])
+                        .concat(scanResult.package_findings || [])
+                        .length ? (
+                        ([] as any[])
+                          .concat(scanResult.image_findings || [])
+                          .concat(scanResult.package_findings || [])
+                          .map((f: any, idx: number) => (
+                            <tr key={idx} className="border-b border-slate-800/60">
+                              <td className="py-2 pr-2 font-mono text-xs text-slate-200">{f.component || f.package || "—"}</td>
+                              <td className="py-2 pr-2">
+                                <span className={severityBadge(f.severity)}>{String(f.severity || "UNKNOWN").toUpperCase()}</span>
+                              </td>
+                              <td className="py-2 pr-2 text-xs text-slate-400">
+                                {(Array.isArray(f.cve_ids) ? f.cve_ids.join(", ") : "") || "—"}
+                              </td>
+                              <td className="py-2 pr-2 text-xs">{f.summary || "—"}</td>
+                            </tr>
+                          ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="py-3 text-sm text-emerald-300">
+                            ✅ No vulnerabilities found.
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {scanMode === "container" && scanResult.hardening_steps?.length ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                    🔧 Hardening Steps
+                  </p>
+                  <ul className="list-disc pl-5 text-xs text-slate-300 space-y-1">
+                    {scanResult.hardening_steps.map((s: string, i: number) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  🔐 ArmorIQ Enforcement
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(() => {
+                    const st = armStatus(scanResult.armoriq?.status || "");
+                    return chip(st.label, st.cls);
+                  })()}
+                </div>
+                {scanResult.armoriq?.receipt && (
+                  <div className="font-mono text-xs text-slate-300 bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2">
+                    {String(scanResult.armoriq.receipt).slice(0, 64)}...
+                  </div>
+                )}
+                {Array.isArray(scanResult.armoriq?.enforcement) &&
+                  scanResult.armoriq.enforcement.some((e: any) => e?.decision === "BLOCK") && (
+                    <div className="bg-red-950/40 border border-red-800/50 rounded-lg px-3 py-2 text-xs text-red-200">
+                      <div className="font-semibold mb-1">🚫 BLOCKED BY ARMORIQ</div>
+                      {scanResult.armoriq.enforcement
+                        .filter((e: any) => e?.decision === "BLOCK")
+                        .map((e: any, i: number) => (
+                          <div key={i}>
+                            {e.action} — {e.resource}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <span className="text-[10px] px-2 py-1 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300">
+                  <span className="text-amber-500/90 font-semibold">OWASP</span>{" "}
+                  <span className="text-slate-400">A06:2021</span>
+                </span>
+                <span className="text-[10px] px-2 py-1 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300">
+                  <span className="text-amber-500/90 font-semibold">CWE</span>{" "}
+                  <span className="text-slate-400">CWE-1104</span>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

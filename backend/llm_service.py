@@ -312,3 +312,30 @@ def _fallback_plan(alert_text: str) -> dict[str, Any]:
     if "delete" in alert_text.lower():
         steps.append({"action": "delete_all", "description": "Unsafe — policy demo", "params": {}})
     return {"goal": "Safely remediate reported vulnerability", "steps": steps}
+
+
+async def call_mistral(prompt: str, system: str = "You are a security expert.") -> str:
+    """Async call to Mistral for vulnerability analysis."""
+    key = os.getenv("MISTRAL_API_KEY", "").strip()
+    if not key:
+        return "Error: MISTRAL_API_KEY not set"
+    model = model_id()
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        try:
+            r = await client.post(
+                MISTRAL_API_URL,
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "temperature": 0.2,
+                },
+            )
+            r.raise_for_status()
+            content = r.json()["choices"][0]["message"]["content"]
+            return content or ""
+        except Exception as e:
+            return f"Error: {str(e)}"

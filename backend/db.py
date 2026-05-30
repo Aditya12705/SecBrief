@@ -19,6 +19,13 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def get_db_connection():
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def init_db() -> None:
     """Create tables once. Safe to call multiple times."""
     global _schema_ready
@@ -52,6 +59,26 @@ def init_db() -> None:
                 plan TEXT DEFAULT 'free',
                 created_at TEXT NOT NULL,
                 is_active INTEGER DEFAULT 1
+            );
+            CREATE TABLE IF NOT EXISTS osv_scan_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT DEFAULT (datetime('now')),
+                scan_type TEXT,
+                target TEXT,
+                vulns_found INTEGER,
+                critical_count INTEGER,
+                armoriq_receipt TEXT,
+                user_email TEXT
+            );
+            CREATE TABLE IF NOT EXISTS scan_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT DEFAULT (datetime('now')),
+                scan_type TEXT,
+                target TEXT,
+                vulns_found INTEGER,
+                critical_count INTEGER,
+                armoriq_receipt TEXT,
+                user_email TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
             CREATE INDEX IF NOT EXISTS idx_sessions_email ON sessions(user_email);
@@ -160,3 +187,57 @@ def create_api_key(email: str, api_key: str, plan: str = "free") -> dict[str, An
             (email.strip().lower(),),
         ).fetchone()
     return dict(row)
+
+
+def save_osv_scan_log(
+    scan_type: str,
+    target: str,
+    vulns_found: int,
+    critical_count: int,
+    receipt: str,
+    user_email: str | None = None,
+):
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO osv_scan_logs (scan_type, target, vulns_found, critical_count, armoriq_receipt, user_email) VALUES (?,?,?,?,?,?)",
+            (scan_type, target, vulns_found, critical_count, receipt, user_email),
+        )
+
+
+def get_osv_scan_logs(user_email: str | None = None, limit: int = 20):
+    with _connect() as conn:
+        if user_email:
+            rows = conn.execute(
+                "SELECT * FROM osv_scan_logs WHERE user_email=? ORDER BY timestamp DESC LIMIT ?",
+                (user_email, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM osv_scan_logs ORDER BY timestamp DESC LIMIT ?", (limit,)
+            ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def save_scan_log(scan_type, target, vulns_found, critical_count, receipt, user_email=None):
+    conn = get_db_connection()
+    conn.execute(
+        "INSERT INTO scan_logs (scan_type,target,vulns_found,critical_count,armoriq_receipt,user_email) VALUES (?,?,?,?,?,?)",
+        (scan_type, target, vulns_found, critical_count, receipt, user_email),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_scan_logs(user_email=None, limit=20):
+    conn = get_db_connection()
+    if user_email:
+        rows = conn.execute(
+            "SELECT * FROM scan_logs WHERE user_email=? ORDER BY timestamp DESC LIMIT ?",
+            (user_email, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM scan_logs ORDER BY timestamp DESC LIMIT ?", (limit,)
+        ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]

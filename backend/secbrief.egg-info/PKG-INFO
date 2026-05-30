@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: secbrief
+Version: 0.1.0
+Requires-Python: >=3.10
+Requires-Dist: python-dotenv>=1.0.0
+Requires-Dist: requests>=2.31.0
+Provides-Extra: server
+Requires-Dist: fastapi>=0.115.0; extra == "server"
+Requires-Dist: uvicorn>=0.32.0; extra == "server"
+Requires-Dist: pydantic[email]>=2.0.0; extra == "server"
+Requires-Dist: python-multipart>=0.0.9; extra == "server"
+Provides-Extra: llm
+Requires-Dist: httpx>=0.27.0; extra == "llm"
+Provides-Extra: armoriq
+Requires-Dist: armoriq-sdk>=0.1.0; extra == "armoriq"
+Requires-Dist: cryptography>=42.0.0; extra == "armoriq"
