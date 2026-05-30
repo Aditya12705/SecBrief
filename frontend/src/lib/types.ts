@@ -49,6 +49,6 @@ export type DemoRepo = {
   why: string;
 };
 
-export type InputMode = "github" | "paste" | "code" | "demo";
+export type InputMode = "github" | "paste" | "code" | "demo" | "scanner";
 
 export type WorkflowStep = "input" | "analyze" | "plan" | "enforce";

@@ -1,7 +1,10 @@
 import type { Decision, DemoRepo, IntentReceipt } from "./types";
 
 /** Empty = same origin (Hugging Face all-in-one deploy). */
-const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+export const API_BASE = (((globalThis as any).process?.env?.NEXT_PUBLIC_API_URL ?? "http://localhost:8000") as string).replace(
+  /\/$/,
+  ""
+);
 
 async function parseResponse<T>(r: Response): Promise<T> {
   const text = await r.text();
@@ -19,14 +22,14 @@ async function parseResponse<T>(r: Response): Promise<T> {
     }
     if (r.status === 0 || detail === "Failed to fetch") {
       throw new Error(
-        `Cannot reach backend at ${API}. Start it with: cd backend && python -m uvicorn main:app --reload --port 8000`
+        `Cannot reach backend at ${API_BASE}. Start it with: cd backend && python -m uvicorn main:app --reload --port 8000`
       );
     }
     throw new Error(detail);
   }
   if (!text.trim()) {
     throw new Error(
-      `Empty response from server. Check CORS (frontend port) and that the backend is running on ${API}.`
+      `Empty response from server. Check CORS (frontend port) and that the backend is running on ${API_BASE}.`
     );
   }
   try {
@@ -37,7 +40,7 @@ async function parseResponse<T>(r: Response): Promise<T> {
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const r = await fetch(`${API}${path}`, {
+  const r = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -46,7 +49,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const r = await fetch(`${API}${path}`);
+  const r = await fetch(`${API_BASE}${path}`);
   return parseResponse<T>(r);
 }
 
@@ -61,7 +64,7 @@ export async function fetchSampleAlert(): Promise<{ text: string }> {
 export async function parseUpload(file: File) {
   const form = new FormData();
   form.append("file", file);
-  const r = await fetch(`${API}/api/parse-upload`, { method: "POST", body: form });
+  const r = await fetch(`${API_BASE}/api/parse-upload`, { method: "POST", body: form });
   return parseResponse<{
     format: string;
     alert_text: string;
@@ -142,7 +145,7 @@ export async function exportBrief(body: {
   decisions?: Decision[];
   receipt?: IntentReceipt | null;
 }) {
-  const r = await fetch(`${API}/api/export-brief`, {
+  const r = await fetch(`${API_BASE}/api/export-brief`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
