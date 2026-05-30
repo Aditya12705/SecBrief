@@ -167,7 +167,7 @@ export function authSignup(email: string) {
 }
 
 export function authMe(apiKey: string) {
-  return fetch(`${API}/api/auth/me`, {
+  return fetch(`${API_BASE}/api/auth/me`, {
     headers: { Authorization: `Bearer ${apiKey}` },
   }).then(parseResponse<{ email: string; plan: string; created_at: string }>);
 }
