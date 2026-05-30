@@ -45,8 +45,18 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (session_id) REFERENCES sessions(id)
             );
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL UNIQUE,
+                api_key TEXT NOT NULL UNIQUE,
+                plan TEXT DEFAULT 'free',
+                created_at TEXT NOT NULL,
+                is_active INTEGER DEFAULT 1
+            );
             CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
             CREATE INDEX IF NOT EXISTS idx_sessions_email ON sessions(user_email);
+            CREATE INDEX IF NOT EXISTS idx_api_keys_email ON api_keys(email);
+            CREATE INDEX IF NOT EXISTS idx_api_keys_key ON api_keys(api_key);
             """
         )
         conn.commit()
@@ -119,3 +129,34 @@ def list_sessions(user_email: str, limit: int = 20) -> list[dict[str, Any]]:
             (user_email.strip().lower(), limit),
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def get_api_key_by_email(email: str) -> dict[str, Any] | None:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM api_keys WHERE email = ?",
+            (email.strip().lower(),),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def get_api_key_by_key(api_key: str) -> dict[str, Any] | None:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM api_keys WHERE api_key = ?",
+            (api_key,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def create_api_key(email: str, api_key: str, plan: str = "free") -> dict[str, Any]:
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO api_keys (email, api_key, plan, created_at, is_active) VALUES (?, ?, ?, ?, ?)",
+            (email.strip().lower(), api_key, plan, _utc_now(), 1),
+        )
+        row = conn.execute(
+            "SELECT * FROM api_keys WHERE email = ?",
+            (email.strip().lower(),),
+        ).fetchone()
+    return dict(row)
