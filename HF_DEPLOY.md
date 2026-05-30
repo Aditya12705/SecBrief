@@ -77,6 +77,14 @@ The repo root must contain:
 
 HF builds automatically when you push. First build takes **5–10 minutes**.
 
+**Important:** Do not commit `frontend/out/` — Docker rebuilds it. Stale `out/` in git caused old UI on Spaces.
+
+After push, use **Factory → Rebuild Space** (not only Restart). Verify deploy:
+
+`https://huggingface.co/spaces/YOUR_USERNAME/secbrief/health` → `frontend_build_sha` should match your latest commit.
+
+Open `/` — you should see the **landing page** first (“Launch Security Dashboard”), not the old 4-tab dashboard only.
+
 ---
 
 ## Step 5 — Secrets (Settings → Variables)

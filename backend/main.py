@@ -136,6 +136,7 @@ class ExportRequest(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     product: str
+    frontend_build_sha: str
     armoriq_configured: bool
     armoriq_config_file: bool
     github_token: bool
@@ -179,12 +180,21 @@ def _ensure_session(email: str, session_id: str | None, input_mode: str, summary
 
 
 @app.get("/health", response_model=HealthResponse)
+def _frontend_build_sha() -> str:
+    sha_path = Path(__file__).resolve().parent.parent / "static" / ".build-sha"
+    try:
+        return sha_path.read_text(encoding="utf-8").strip() or "unknown"
+    except OSError:
+        return "unknown"
+
+
 def health() -> HealthResponse:
     key = os.getenv("ARMORIQ_API_KEY", "")
     config_path = Path(__file__).parent / "armoriq.yaml"
     return HealthResponse(
         status="ok",
         product="SecBrief",
+        frontend_build_sha=_frontend_build_sha(),
         armoriq_configured=bool(key.startswith(("ak_live_", "ak_test_", "ak_claw_"))),
         armoriq_config_file=config_path.is_file(),
         github_token=bool(os.getenv("GITHUB_TOKEN", "").strip()),
